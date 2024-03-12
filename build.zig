@@ -7,15 +7,17 @@ pub fn build(b: *std.Build) void {
 
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const root_source_file = .{ .path = "src/recover.zig" };
 
     const recover_module = b.addModule("recover", .{
-        .root_source_file = .{ .path = "src/recover.zig" },
+        .root_source_file = root_source_file,
         .link_libc = if (target.result.os.tag != .windows) true else null,
     });
 
     // docs:
-    const doc_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/recover.zig" },
+    const doc_tests = b.addStaticLibrary(.{
+        .name = "recover",
+        .root_source_file = root_source_file,
         .target = target,
         .optimize = optimize,
     });
@@ -42,7 +44,9 @@ pub fn build(b: *std.Build) void {
     // clean:
     const clean_step = b.step("clean", "Clean up");
     clean_step.dependOn(&b.addRemoveDirTree(b.install_path).step);
-    clean_step.dependOn(&b.addRemoveDirTree(b.pathFromRoot("zig-cache")).step);
+    if (@import("builtin").os.tag != .windows) {
+        clean_step.dependOn(&b.addRemoveDirTree(b.pathFromRoot("zig-cache")).step);
+    }
 
     // all: docs test
     const all_step = b.step("all", "Generate documentation and run tests");
