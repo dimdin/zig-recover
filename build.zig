@@ -3,8 +3,6 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    b.top_level_steps = .{};
-
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const root_source_file = .{ .path = "src/recover.zig" };
