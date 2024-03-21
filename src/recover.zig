@@ -11,7 +11,7 @@ const Context = if (builtin.os.tag == .windows)
 else if (builtin.os.tag == .linux and builtin.abi == .musl)
     musl.jmp_buf
 else
-    std.os.ucontext_t;
+    std.c.ucontext_t;
 
 threadlocal var top_ctx: ?*const Context = null;
 
@@ -70,7 +70,7 @@ const WINAPI = std.os.windows.WINAPI;
 extern "ntdll" fn RtlRestoreContext(ContextRecord: *const CONTEXT, ExceptionRecord: ?*const EXCEPTION_RECORD) callconv(WINAPI) noreturn;
 
 // darwin, bsd, gnu linux
-extern "c" fn setcontext(ucp: *const std.os.ucontext_t) noreturn;
+extern "c" fn setcontext(ucp: *const std.c.ucontext_t) noreturn;
 
 // linux musl
 const musl = struct {
