@@ -1,7 +1,8 @@
 // Copyright © 2024 Dimitris Dinodimos.
 
 //! Panic recover.
-//! Regains control of the calling thread when the function panics or behaves undefined.
+//! Regains control of the calling thread when the function panics or behaves
+//! undefined.
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -15,48 +16,82 @@ else
 
 threadlocal var top_ctx: ?*const Context = null;
 
-/// Call from root source file panic handler.
 /// Returns if there was no recover call in current thread.
-/// Otherwise, does not return and execution continues from the current thread recover call.
+/// Otherwise, does not return and execution continues from the current thread
+/// recover call.
+/// Call from root source file panic handler.
 pub fn panicked() void {
     if (top_ctx) |ctx| {
         setContext(ctx);
     }
 }
 
-// comptime function that extends T by combining its error set with E.
-fn extErrType(T: type, E: type) type {
-    if (@typeInfo(E) != .ErrorSet)
-        @compileError("An error value is required.");
+fn OLD() bool {
+    comptime {
+        const zig_version = @import("builtin").zig_version;
+        const version = std.SemanticVersion{
+            .major = 0,
+            .minor = 14,
+            .patch = 0,
+            .pre = "dev",
+        };
+        return zig_version.order(version) == .lt;
+    }
+}
+
+// comptime function that extends T by combining its error set with error.Panic
+fn ExtErrType(T: type) type {
+    const E = error{Panic};
+
+    if (OLD()) {
+        const info = @typeInfo(T);
+        if (info != .ErrorUnion) {
+            return @Type(.{ .ErrorUnion = .{
+                .error_set = E,
+                .payload = T,
+            } });
+        }
+        return @Type(.{
+            .ErrorUnion = .{
+                .error_set = info.ErrorUnion.error_set || E,
+                .payload = info.ErrorUnion.payload,
+            },
+        });
+    }
+
     const info = @typeInfo(T);
-    if (info != .ErrorUnion) {
-        return @Type(.{ .ErrorUnion = .{
+    if (info != .error_union) {
+        return @Type(.{ .error_union = .{
             .error_set = E,
             .payload = T,
         } });
     }
     return @Type(.{
-        .ErrorUnion = .{
-            .error_set = info.ErrorUnion.error_set || E,
-            .payload = info.ErrorUnion.payload,
+        .error_union = .{
+            .error_set = info.error_union.error_set || E,
+            .payload = info.error_union.payload,
         },
     });
 }
 
 /// Calls `func` with `args`, guarding from runtime errors.
-/// Returns the `panicked_error` value when recovers from runtime error.
-/// Otherwise returns the return value of calling func with args.
+/// Returns `error.Panic` when recovers from runtime error.
+/// Otherwise returns the return value of func.
 pub fn call(
     func: anytype,
     args: anytype,
-    panicked_error: anytype,
-) extErrType(@typeInfo(@TypeOf(func)).Fn.return_type.?, @TypeOf(panicked_error)) {
+) ExtErrType(
+    if (OLD())
+        @typeInfo(@TypeOf(func)).Fn.return_type.?
+    else
+        @typeInfo(@TypeOf(func)).@"fn".return_type.?,
+) {
     const prev_ctx: ?*const Context = top_ctx;
     var ctx: Context = std.mem.zeroes(Context);
     getContext(&ctx);
     if (top_ctx != prev_ctx) {
         top_ctx = prev_ctx;
-        return panicked_error;
+        return error.Panic;
     }
     top_ctx = &ctx;
     defer top_ctx = prev_ctx;
@@ -67,7 +102,10 @@ pub fn call(
 const CONTEXT = std.os.windows.CONTEXT;
 const EXCEPTION_RECORD = std.os.windows.EXCEPTION_RECORD;
 const WINAPI = std.os.windows.WINAPI;
-extern "ntdll" fn RtlRestoreContext(ContextRecord: *const CONTEXT, ExceptionRecord: ?*const EXCEPTION_RECORD) callconv(WINAPI) noreturn;
+extern "ntdll" fn RtlRestoreContext(
+    ContextRecord: *const CONTEXT,
+    ExceptionRecord: ?*const EXCEPTION_RECORD,
+) callconv(WINAPI) noreturn;
 
 // darwin, bsd, gnu linux
 extern "c" fn setcontext(ucp: *const std.c.ucontext_t) noreturn;
@@ -97,4 +135,15 @@ inline fn setContext(ctx: *const Context) noreturn {
     } else {
         setcontext(ctx);
     }
+}
+
+/// Panic handler that if there is a recover call in current thread continues from recover call. Otherwise calls the default panic.
+/// Install at root source file as `const panic = @import("recover").panic;`
+pub fn panic(
+    msg: []const u8,
+    error_return_trace: ?*std.builtin.StackTrace,
+    ret_addr: ?usize,
+) noreturn {
+    panicked();
+    std.builtin.default_panic(msg, error_return_trace, ret_addr);
 }
