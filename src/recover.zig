@@ -26,6 +26,7 @@ pub fn panicked() void {
     }
 }
 
+// returns true if zig is using the old names of types
 fn OLD() bool {
     comptime {
         const zig_version = @import("builtin").zig_version;
@@ -46,32 +47,25 @@ fn ExtErrType(T: type) type {
     if (OLD()) {
         const info = @typeInfo(T);
         if (info != .ErrorUnion) {
-            return @Type(.{ .ErrorUnion = .{
-                .error_set = E,
-                .payload = T,
-            } });
+            return E!T;
         }
-        return @Type(.{
-            .ErrorUnion = .{
-                .error_set = info.ErrorUnion.error_set || E,
-                .payload = info.ErrorUnion.payload,
-            },
-        });
+        return (info.ErrorUnion.error_set || E)!(info.ErrorUnion.payload);
     }
 
     const info = @typeInfo(T);
     if (info != .error_union) {
-        return @Type(.{ .error_union = .{
-            .error_set = E,
-            .payload = T,
-        } });
+        return E!T;
     }
-    return @Type(.{
-        .error_union = .{
-            .error_set = info.error_union.error_set || E,
-            .payload = info.error_union.payload,
-        },
-    });
+    return (info.error_union.error_set || E)!(info.error_union.payload);
+}
+
+// comptime function that returns the return type of function `func`
+fn ReturnType(func: anytype) type {
+    const ti = @typeInfo(@TypeOf(func));
+    if (OLD()) {
+        return ti.Fn.return_type.?;
+    }
+    return ti.@"fn".return_type.?;
 }
 
 /// Calls `func` with `args`, guarding from runtime errors.
@@ -80,12 +74,7 @@ fn ExtErrType(T: type) type {
 pub fn call(
     func: anytype,
     args: anytype,
-) ExtErrType(
-    if (OLD())
-        @typeInfo(@TypeOf(func)).Fn.return_type.?
-    else
-        @typeInfo(@TypeOf(func)).@"fn".return_type.?,
-) {
+) ExtErrType(ReturnType(func)) {
     const prev_ctx: ?*const Context = top_ctx;
     var ctx: Context = std.mem.zeroes(Context);
     getContext(&ctx);
@@ -137,7 +126,8 @@ inline fn setContext(ctx: *const Context) noreturn {
     }
 }
 
-/// Panic handler that if there is a recover call in current thread continues from recover call. Otherwise calls the default panic.
+/// Panic handler that if there is a recover call in current thread continues
+/// from recover call. Otherwise calls the default panic.
 /// Install at root source file as `const panic = @import("recover").panic;`
 pub fn panic(
     msg: []const u8,

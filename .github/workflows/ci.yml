@@ -5,19 +5,24 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        version: [master, 0.13.0, 0.12.0]
     runs-on: ${{matrix.os}}
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
         with:
-          version: master
+          version: ${{matrix.version}}
       - run: zig env
       - run: zig build test --summary all
   lint:
+    name: Check Format and Spell Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
         with:
           version: master
+      - uses: crate-ci/typos@master
+        with:
+          files: ./
       - run: zig fmt --check .
