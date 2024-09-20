@@ -1,4 +1,4 @@
-name: Deploy zig generated documentstion to Pages
+name: Deploy zig generated documentation to Pages
 
 on:
   push:
