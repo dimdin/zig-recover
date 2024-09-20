@@ -35,7 +35,6 @@ pub fn build(b: *std.Build) void {
         .root_source_file = test_source_file,
         .target = target,
         .optimize = optimize,
-        .sanitize_thread = true,
     });
     exe.root_module.addImport("recover", recover_module);
     const run_exe = b.addRunArtifact(exe);
