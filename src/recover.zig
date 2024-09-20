@@ -128,7 +128,7 @@ inline fn setContext(ctx: *const Context) noreturn {
 
 /// Panic handler that if there is a recover call in current thread continues
 /// from recover call. Otherwise calls the default panic.
-/// Install at root source file as `const panic = @import("recover").panic;`
+/// Install at root source file as `pub const panic = @import("recover").panic;`
 pub fn panic(
     msg: []const u8,
     error_return_trace: ?*std.builtin.StackTrace,
