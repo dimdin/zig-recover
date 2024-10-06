@@ -135,5 +135,9 @@ pub fn panic(
     ret_addr: ?usize,
 ) noreturn {
     panicked();
-    std.builtin.default_panic(msg, error_return_trace, ret_addr);
+    if (@hasDecl(std.builtin, "default_panic")) {
+        std.builtin.default_panic(msg, error_return_trace, ret_addr);
+    } else {
+        std.debug.defaultPanic(msg, error_return_trace, ret_addr);
+    }
 }
