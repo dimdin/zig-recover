@@ -29,7 +29,7 @@ pub fn panicked() void {
 // returns true if zig is using the old names of types
 fn OLD() bool {
     comptime {
-        const zig_version = @import("builtin").zig_version;
+        const zig_version = builtin.zig_version;
         const version = std.SemanticVersion{
             .major = 0,
             .minor = 14,
@@ -135,9 +135,8 @@ pub fn panic(
     ret_addr: ?usize,
 ) noreturn {
     panicked();
-    if (@hasDecl(std.builtin, "default_panic")) {
+    if (std.meta.hasFn(std.builtin, "default_panic")) {
         std.builtin.default_panic(msg, error_return_trace, ret_addr);
-    } else {
-        std.debug.defaultPanic(msg, error_return_trace, ret_addr);
     }
+    std.debug.defaultPanic(msg, error_return_trace, ret_addr);
 }
