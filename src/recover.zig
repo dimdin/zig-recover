@@ -26,32 +26,9 @@ pub fn panicked() void {
     }
 }
 
-// returns true if zig is using the old names of types
-fn OLD() bool {
-    comptime {
-        const zig_version = builtin.zig_version;
-        const version = std.SemanticVersion{
-            .major = 0,
-            .minor = 14,
-            .patch = 0,
-            .pre = "dev",
-        };
-        return zig_version.order(version) == .lt;
-    }
-}
-
 // comptime function that extends T by combining its error set with error.Panic
 fn ExtErrType(T: type) type {
     const E = error{Panic};
-
-    if (OLD()) {
-        const info = @typeInfo(T);
-        if (info != .ErrorUnion) {
-            return E!T;
-        }
-        return (info.ErrorUnion.error_set || E)!(info.ErrorUnion.payload);
-    }
-
     const info = @typeInfo(T);
     if (info != .error_union) {
         return E!T;
@@ -62,9 +39,6 @@ fn ExtErrType(T: type) type {
 // comptime function that returns the return type of function `func`
 fn ReturnType(func: anytype) type {
     const ti = @typeInfo(@TypeOf(func));
-    if (OLD()) {
-        return ti.Fn.return_type.?;
-    }
     return ti.@"fn".return_type.?;
 }
 
@@ -129,14 +103,14 @@ inline fn setContext(ctx: *const Context) noreturn {
 /// Panic handler that if there is a recover call in current thread continues
 /// from recover call. Otherwise calls the default panic.
 /// Install at root source file as `pub const panic = @import("recover").panic;`
-pub fn panic(
-    msg: []const u8,
-    error_return_trace: ?*std.builtin.StackTrace,
-    ret_addr: ?usize,
-) noreturn {
-    panicked();
-    if (std.meta.hasFn(std.builtin, "default_panic")) {
-        std.builtin.default_panic(msg, error_return_trace, ret_addr);
-    }
-    std.debug.defaultPanic(msg, error_return_trace, ret_addr);
-}
+pub const panic: type = std.debug.FullPanic(
+    struct {
+        pub fn panic(
+            msg: []const u8,
+            first_trace_addr: ?usize,
+        ) noreturn {
+            panicked();
+            std.debug.defaultPanic(msg, first_trace_addr);
+        }
+    }.panic,
+);
