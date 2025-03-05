@@ -5,7 +5,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        version: [master]
+        version: [master, 0.14.0]
     runs-on: ${{matrix.os}}
     steps:
       - uses: actions/checkout@v4
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: mlugg/setup-zig@v1
         with:
-          version: [0.14.0, master]
+          version: latest
       - uses: crate-ci/typos@master
         with:
           files: ./
