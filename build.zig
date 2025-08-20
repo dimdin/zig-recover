@@ -11,14 +11,15 @@ pub fn build(b: *std.Build) void {
     const recover_module = b.addModule("recover", .{
         .root_source_file = root_source_file,
         .link_libc = link_libc,
+        .target = target,
+        .optimize = optimize,
     });
 
     // docs:
-    const doc_tests = b.addStaticLibrary(.{
+    const doc_tests = b.addLibrary(.{
         .name = "recover",
-        .root_source_file = root_source_file,
-        .target = target,
-        .optimize = optimize,
+        .linkage = .static,
+        .root_module = recover_module,
     });
     const install_docs = b.addInstallDirectory(.{
         .source_dir = doc_tests.getEmittedDocs(),
@@ -29,14 +30,16 @@ pub fn build(b: *std.Build) void {
     docs_step.dependOn(&install_docs.step);
 
     // test:
-    const test_source_file = b.path("src/test.zig");
-    const exe = b.addExecutable(.{
-        .name = "test-recover",
-        .root_source_file = test_source_file,
+    const test_module = b.createModule(.{
+        .root_source_file = b.path("src/test.zig"),
         .target = target,
         .optimize = optimize,
     });
-    exe.root_module.addImport("recover", recover_module);
+    test_module.addImport("recover", recover_module);
+    const exe = b.addExecutable(.{
+        .name = "test-recover",
+        .root_module = test_module,
+    });
     const run_exe = b.addRunArtifact(exe);
     const run_step = b.step("test", "Run tests");
     run_step.dependOn(&run_exe.step);
@@ -44,9 +47,7 @@ pub fn build(b: *std.Build) void {
     // check:
     const exe_check = b.addExecutable(.{
         .name = "test-recover",
-        .root_source_file = test_source_file,
-        .target = target,
-        .optimize = optimize,
+        .root_module = test_module,
     });
     exe_check.root_module.addImport("recover", recover_module);
     const check_step = b.step("check", "Check if compiles");
