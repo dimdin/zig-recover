@@ -12,6 +12,7 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: ${{matrix.version}}
+      - run: echo "OS=$(uname -s), ARCH=$(uname -m), RUNNER=${{matrix.os}}"
       - run: zig version
       - run: zig env
       - run: zig build check test --summary all
