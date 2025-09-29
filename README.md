@@ -23,8 +23,8 @@ Prerequisites
 1. Enabled runtime safety checks, such as unreachable, index out of bounds,
 overflow, division by zero, incorrect pointer alignment, etc.
 
-2. In the root source file define panic as recover.panic or override the default panic handler and call recover
-`panicked`.
+2. In the root source file define panic as recover.panic or override the
+default panic handler and call recover `panicked`.
 ```
 pub const panic = recover.panic;
 ```
@@ -33,7 +33,7 @@ pub const panic = recover.panic;
 Example
 -------
 
-Returns error.Panic because function division panics with runtime error
+Returns `error.Panic` because function division panics with runtime error
 "division by zero".
 ```
 fn division(num: u32, den: u32) u32 {
@@ -46,7 +46,8 @@ try recover.call(division, .{1, 0});
 Testing
 -------
 
-For recover to work for testing, you need a custom test runner with a panic handler:
+For recover to work for testing, you need a custom test runner with a panic
+handler:
 ```
 pub const panic = @import("recover").panic;
 ```
