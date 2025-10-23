@@ -1,0 +1,9 @@
+words = [
+    "comptime",
+    "jmp",
+    "longjmp",
+    "ntdll",
+    "setcontext",
+    "setjmp",
+    "zon",
+]

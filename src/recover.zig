@@ -70,7 +70,7 @@ extern "ntdll" fn RtlRestoreContext(
 ) callconv(.winapi) noreturn;
 
 // darwin, bsd, gnu linux
-extern "c" fn setcontext(ucp: *const std.c.ucontext_t) noreturn;
+extern "c" fn setcontext(ctx: *const std.c.ucontext_t) noreturn;
 
 // linux musl
 const musl = struct {
