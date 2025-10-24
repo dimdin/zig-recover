@@ -7,12 +7,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const Context = if (builtin.os.tag == .windows)
+const is_windows: bool = (builtin.os.tag == .windows);
+
+const Context = if (is_windows)
     std.os.windows.CONTEXT
-else if (builtin.os.tag == .linux and builtin.abi == .musl)
-    musl.jmp_buf
 else
-    std.c.ucontext_t;
+    c.jmp_buf;
 
 threadlocal var top_ctx: ?*const Context = null;
 
@@ -26,7 +26,8 @@ pub fn panicked() void {
     }
 }
 
-// comptime function that extends T by combining its error set with error.Panic
+// comptime function that extends T by combining its error set with
+// `error.Panic`
 fn ExtErrType(T: type) type {
     const E = error{Panic};
     const info = @typeInfo(T);
@@ -61,47 +62,45 @@ pub fn call(
     return @call(.auto, func, args);
 }
 
-// windows
-const CONTEXT = std.os.windows.CONTEXT;
-const EXCEPTION_RECORD = std.os.windows.EXCEPTION_RECORD;
-extern "ntdll" fn RtlRestoreContext(
-    ContextRecord: *const CONTEXT,
-    ExceptionRecord: ?*const EXCEPTION_RECORD,
-) callconv(.winapi) noreturn;
+const windows = struct {
+    const CONTEXT = std.os.windows.CONTEXT;
+    const EXCEPTION_RECORD = std.os.windows.EXCEPTION_RECORD;
+    const RtlCaptureContext = std.os.windows.ntdll.RtlCaptureContext;
+    extern "ntdll" fn RtlRestoreContext(
+        ContextRecord: *const CONTEXT,
+        ExceptionRecord: ?*const EXCEPTION_RECORD,
+    ) callconv(.winapi) noreturn;
+};
 
-// darwin, bsd, gnu linux
-extern "c" fn setcontext(ctx: *const std.c.ucontext_t) noreturn;
-
-// linux musl
-const musl = struct {
-    const jmp_buf = @cImport(@cInclude("setjmp.h")).jmp_buf;
-    extern fn setjmp(env: *jmp_buf) c_int;
-    extern fn longjmp(env: *const jmp_buf, val: c_int) noreturn;
+const c = struct {
+    const setjmp_h = @cImport(@cInclude("setjmp.h"));
+    const jmp_buf = setjmp_h.jmp_buf;
+    extern "c" fn setjmp(env: *jmp_buf) c_int;
+    extern "c" fn longjmp(env: *const jmp_buf, val: c_int) noreturn;
 };
 
 inline fn getContext(ctx: *Context) void {
-    if (builtin.os.tag == .windows) {
-        std.os.windows.ntdll.RtlCaptureContext(ctx);
-    } else if (builtin.os.tag == .linux and builtin.abi == .musl) {
-        _ = musl.setjmp(ctx);
+    if (is_windows) {
+        windows.RtlCaptureContext(ctx);
     } else {
-        _ = std.debug.getContext(ctx);
+        _ = c.setjmp(ctx);
     }
 }
 
 inline fn setContext(ctx: *const Context) noreturn {
-    if (builtin.os.tag == .windows) {
-        RtlRestoreContext(ctx, null);
-    } else if (builtin.os.tag == .linux and builtin.abi == .musl) {
-        musl.longjmp(ctx, 1);
+    if (is_windows) {
+        windows.RtlRestoreContext(ctx, null);
     } else {
-        setcontext(ctx);
+        c.longjmp(ctx, 1);
     }
 }
 
 /// Panic handler that if there is a recover call in current thread continues
 /// from recover call. Otherwise calls the default panic.
-/// Install at root source file as `pub const panic = @import("recover").panic;`
+/// Install at root source file using:
+/// ```
+/// pub const panic = @import("recover").panic;
+/// ```
 pub const panic: type = std.debug.FullPanic(
     struct {
         pub fn panic(
