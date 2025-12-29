@@ -72,7 +72,8 @@ const windows = struct {
     ) callconv(.winapi) noreturn;
 };
 
-const c = struct {
+const c = if (is_windows)
+{} else struct {
     const setjmp_h = @cImport(@cInclude("setjmp.h"));
     const jmp_buf = setjmp_h.jmp_buf;
     extern "c" fn setjmp(env: *jmp_buf) c_int;
