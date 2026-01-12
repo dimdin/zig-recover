@@ -1,4 +1,5 @@
-// Copyright © 2024 Dimitris Dinodimos.
+// SPDX-FileCopyrightText: © 2024 Dimitris Dinodimos
+// SPDX-License-Identifier: MIT
 
 const std = @import("std");
 

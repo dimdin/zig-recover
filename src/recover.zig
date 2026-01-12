@@ -1,4 +1,5 @@
-// Copyright © 2024 Dimitris Dinodimos.
+// SPDX-FileCopyrightText: © 2024 Dimitris Dinodimos
+// SPDX-License-Identifier: MIT
 
 //! Panic recover.
 //! Regains control of the calling thread when the function panics or behaves
