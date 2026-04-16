@@ -20,7 +20,8 @@ jobs:
       - run: echo "OS=$(uname -s), ARCH=$(uname -m), RUNNER=${{matrix.os}}"
       - run: zig version
       - run: zig env
-      - run: zig build check test --summary all
+      - run: zig build --summary all
+      - run: zig build test --summary all
   lint:
     name: Check Format and Spell Check
     runs-on: ubuntu-latest
