@@ -28,7 +28,7 @@ jobs:
       - name: Setup Zig
         uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.2
+          version: latest
       - name: Build Docs
         run: zig build docs
       - name: Upload artifact
