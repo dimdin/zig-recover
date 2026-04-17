@@ -73,14 +73,7 @@ const windows = struct {
     ) callconv(.winapi) noreturn;
 };
 
-// zig fmt: off
-const c = if (is_windows) {} else struct {
-// zig fmt: on
-    const setjmp_h = @cImport(@cInclude("setjmp.h"));
-    const jmp_buf = setjmp_h.jmp_buf;
-    extern "c" fn setjmp(env: *jmp_buf) c_int;
-    extern "c" fn longjmp(env: *const jmp_buf, val: c_int) noreturn;
-};
+const c = if (is_windows) {} else @import("c");
 
 inline fn getContext(ctx: *Context) void {
     if (is_windows) {
@@ -94,7 +87,7 @@ inline fn setContext(ctx: *const Context) noreturn {
     if (is_windows) {
         windows.RtlRestoreContext(ctx, null);
     } else {
-        c.longjmp(ctx, 1);
+        c.longjmp(@constCast(ctx), 1);
     }
 }
 

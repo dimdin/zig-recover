@@ -7,13 +7,26 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const root_source_file = b.path("src/recover.zig");
-    const link_libc = if (target.result.os.tag != .windows) true else null;
-    const recover_module = b.addModule("recover", .{
-        .root_source_file = root_source_file,
-        .link_libc = link_libc,
+    const target_windows = target.result.os.tag == .windows;
+    const translate_c = b.addTranslateC(.{
+        .root_source_file = b.path("src/c.h"),
         .target = target,
         .optimize = optimize,
+    });
+    const recover_module = b.addModule("recover", .{
+        .root_source_file = b.path("src/recover.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = if (target_windows) null else true,
+        .imports = if (target_windows)
+            &.{}
+        else
+            &.{
+                .{
+                    .name = "c",
+                    .module = translate_c.createModule(),
+                },
+            },
     });
 
     // docs:
