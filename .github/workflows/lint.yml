@@ -1,0 +1,30 @@
+name: lint
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Check Format and Spell Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout actions
+        uses: actions/checkout@v4
+      - name: Setup latest zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: latest
+      - name: Syntax check (vale)
+        uses: errata-ai/vale-action@v2
+        with:
+          vale_flags: "--glob=*.md"
+          fail_on_error: true
+          reporter: github-check
+      - name: Code spell check (typos)
+        uses: crate-ci/typos@v1
+        with:
+          files: ./
+      - name: Code format check (zig fmt)
+        run: zig fmt --check .
