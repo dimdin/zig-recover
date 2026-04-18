@@ -1,4 +1,4 @@
-name: test
+name: Test using various zig versions, operating systems, and architectures
 on:
   push:
     branches: ["main"]
@@ -13,7 +13,7 @@ jobs:
         version: [master, 0.16.0, 0.15.2, 0.14.1]
     runs-on: ${{matrix.os}}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: mlugg/setup-zig@v2
         with:
           version: ${{matrix.version}}

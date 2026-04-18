@@ -1,4 +1,4 @@
-name: lint
+name: Check syntax, spelling and zig formatting
 on:
   push:
     branches: ["main"]
@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup latest zig
         uses: mlugg/setup-zig@v2
         with:
           version: latest
       - name: Syntax check (vale)
-        uses: errata-ai/vale-action@v2
+        uses: vale-cli/vale-action@v2
         with:
           vale_flags: "--glob=*.md"
           fail_on_error: true
