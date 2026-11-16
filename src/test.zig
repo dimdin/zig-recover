@@ -28,7 +28,7 @@ fn tests() void {
         // assert(true);
         const res = recover.call(assertion, .{true});
         assert(res != error.Panic);
-        assert(res catch unreachable == {});
+        assert((res catch unreachable) == {});
     }
     {
         // assert(false);   unreachable
@@ -39,7 +39,7 @@ fn tests() void {
         // inc(1);          1+1
         const res = recover.call(inc, .{1});
         assert(res != error.Panic);
-        assert(res catch unreachable == 2);
+        assert((res catch unreachable) == 2);
     }
     {
         // inc(255);        overflow
@@ -50,7 +50,7 @@ fn tests() void {
         // div1by(1);       1/1
         const res = recover.call(div1by, .{1});
         assert(res != error.Panic);
-        assert(res catch unreachable == 1);
+        assert((res catch unreachable) == 1);
     }
     {
         // div1by(0);       division by zero
@@ -61,7 +61,7 @@ fn tests() void {
         // at("hi", 1);     "hi"[1]
         const res = recover.call(at, .{ "hi", 1 });
         assert(res != error.Panic);
-        assert(res catch unreachable == 'i');
+        assert((res catch unreachable) == 'i');
     }
     {
         // at("hi", 2);     index out of bounds
